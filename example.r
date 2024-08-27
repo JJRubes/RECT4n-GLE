@@ -1,0 +1,3 @@
+ A BBBBB
+AAAB  DB
+ ADDDDD
