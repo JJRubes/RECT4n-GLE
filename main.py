@@ -2,11 +2,15 @@ import sys
 
 # additional things to ask:
 # - how is the program's width calculated
+#   It includes whitespace (not newlines)
 # - how do you break size ties
-
-# start in the top right
-# if there is a non-space start a new shape
-#   bfs to add all the elements to the shape
+#   look at the bottom row
+# - which order to add real symbols
+# - do real symbols depend on other shapes
+#   e.g.  AA
+#         A A
+#          AA
+#   this is 2 shapes, are there still real symbols here?
 
 class Shape:
     def __init__(self, contents, row, col):
@@ -42,6 +46,15 @@ class Shape:
         min_x = min(next, key=lambda pos: pos[1])[1]
         self.positions = [(pos[0] - min_y, pos[1] - min_x) for pos in next]
         self.offset = (min_y, min_x)
+
+        # split into real and imaginary
+        real_below = lambda rp: (
+                (rp[0] + 1, rp[1] - 1) in self.positions and
+                (rp[0] + 1, rp[1] + 1) in self.positions and
+                (rp[0] + 2, rp[1]    ) in self.positions
+                )
+        self.real = [real_pos for real_pos in self.positions if real_below(real_pos)]
+        self.imaginary = [im_pos for im_pos in self.positions if im_pos not in self.real]
 
     def print(self):
         x, y = 0, 0
@@ -80,13 +93,18 @@ def interpret(file):
     for line in content:
         print("  " + "".join(line), end='')
 
+    # parse the shapes
     shapes = []
     for row, line in enumerate(content):
         for col, symbol in enumerate(line):
             if not symbol.isspace():
                 shapes.append(Shape(content, row, col))
+    # doing tie breaking by what was parsed first
+    # i.e. left to right, top to bottom
+    shapes.sort(lambda shape: shape.count)
     for shape in shapes:
         shape.print()
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
