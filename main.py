@@ -13,18 +13,18 @@ import sys
 #   this is 2 shapes, are there still real symbols here?
 
 class Shape:
-    def __init__(self, contents, row, col):
+    def __init__(self, contents, row, col, visited):
+        # the symbol of the shape
         self.symbol = contents[row][col]
+
+        # Breadth first traversal
         next = []
         next.append((row, col))
+        visited.append((row, col))
         base = 0
         while len(next) > base:
             y = next[base][0]
             x = next[base][1]
-
-            # clear it
-            contents[y][x] = ' '
-
             # add neighbours
             l = [0, 1, 0, -1]
             for i in range(4):
@@ -34,9 +34,9 @@ class Shape:
                 next_x = x + l[(i + 1) % 4]
                 if not (0 <= next_x < len(contents[next_y])):
                     continue
-                if contents[next_y][next_x] == self.symbol:
+                if contents[next_y][next_x] == self.symbol and (next_y, next_x) not in visited:
                     next.append((next_y, next_x))
-
+                    visited.append((next_y, next_x))
             base += 1
         self.count = base
 
@@ -86,22 +86,28 @@ class Shape:
 
 
 def interpret(file):
+    # read the input and clean up newlines
     with open(file, 'r') as f:
         content = f.readlines()
-    content = [list(s) for s in content]
+    content = [[c for c in list(s) if c != '\n'] for s in content]
     print("input file:")
     for line in content:
-        print("  " + "".join(line), end='')
+        print("  " + "".join(line))
+
+    # The width includes whitespace
+    width = max(content, key=lambda l: len(l))
 
     # parse the shapes
     shapes = []
+    visited = []
     for row, line in enumerate(content):
         for col, symbol in enumerate(line):
-            if not symbol.isspace():
-                shapes.append(Shape(content, row, col))
+            if not symbol.isspace() and (row, col) not in visited:
+                shapes.append(Shape(content, row, col, visited))
     # doing tie breaking by what was parsed first
     # i.e. left to right, top to bottom
-    shapes.sort(lambda shape: shape.count)
+    shapes.sort(key=lambda shape: shape.count)
+    print("Shapes:")
     for shape in shapes:
         shape.print()
 
