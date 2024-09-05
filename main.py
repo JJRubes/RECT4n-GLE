@@ -42,26 +42,27 @@ class Shape:
 
         # normalise
         next.sort()
+        self.positions = next
         min_y = min(next, key=lambda pos: pos[0])[0]
         min_x = min(next, key=lambda pos: pos[1])[1]
-        self.positions = [(pos[0] - min_y, pos[1] - min_x) for pos in next]
+        max_x = max(next, key=lambda pos: pos[0])[0]
         self.offset = (min_y, min_x)
+        self.width = max_x - min_x + 1
 
-        # split into real and imaginary
-        real_below = lambda rp: (
-                (rp[0] + 1, rp[1] - 1) in self.positions and
-                (rp[0] + 1, rp[1] + 1) in self.positions and
-                (rp[0] + 2, rp[1]    ) in self.positions
-                )
-        self.real = [real_pos for real_pos in self.positions if real_below(real_pos)]
-        self.imaginary = [im_pos for im_pos in self.positions if im_pos not in self.real]
+    def ordering(self):
+        # assume positions is sorted
+        max_y = self.positions[-1][0]
+        # order by number of tiles
+        # lowest position
+        # count of tiles at that position
+        return (self.count, max_y, [y for y, x in self.positions].count(max_y))
 
     def print(self):
-        x, y = 0, 0
+        y, x = self.offset
         for pos in self.positions:
             while y < pos[0]:
                 print()
-                x = 0
+                x = self.offset[1]
                 y += 1
             while x < pos[1]:
                 print(' ', end='')
@@ -85,6 +86,16 @@ class Shape:
         return image
 
 
+def find_real(stiles, symbol):
+    # split into real and imaginary
+    real_below = lambda rp: (
+            (rp[0] + 1, rp[1] - 1, symbol) in stiles and
+            (rp[0] + 1, rp[1] + 1, symbol) in stiles and
+            (rp[0] + 2, rp[1]    , symbol) in stiles
+            )
+    return [real for real in stiles if real_below(real)]
+
+
 def interpret(file):
     # read the input and clean up newlines
     with open(file, 'r') as f:
@@ -95,21 +106,55 @@ def interpret(file):
         print("  " + "".join(line))
 
     # The width includes whitespace
-    width = max(content, key=lambda l: len(l))
+    width = max([len(l) for l in content])
 
     # parse the shapes
     shapes = []
     visited = []
+    symbols = set()
     for row, line in enumerate(content):
         for col, symbol in enumerate(line):
             if not symbol.isspace() and (row, col) not in visited:
                 shapes.append(Shape(content, row, col, visited))
+                symbols.add(symbol)
+
     # doing tie breaking by what was parsed first
     # i.e. left to right, top to bottom
-    shapes.sort(key=lambda shape: shape.count)
+    shapes.sort(key=lambda shape: shape.ordering(), reverse=True)
     print("Shapes:")
     for shape in shapes:
         shape.print()
+
+    # find the buffer offsets
+    # and add them to symbol list
+    same_symbol = {}
+    acc = 0
+    for shape in shapes:
+        shape.buffer_offset = acc
+        if shape.symbol not in same_symbol:
+            same_symbol[shape.symbol] = []
+        same_symbol[shape.symbol].append(shape)
+        acc += shape.width
+
+    # put it all into a list
+    buffer = [(tile[0] - shape.offset[0], tile[0] - shape.offset[1] + shape.buffer_offset, shape.symbol) for shape in shapes for tile in shape.positions]
+    real = []
+    for symbol in symbols:
+        only_one_symbol = [tile for tile in buffer if tile[2] == symbol]
+        real += find_real(only_one_symbol, symbol)
+    real.sort(reverse=True)
+
+    # start building the final rectangle
+    final_rect = [tile[2] for tile in real]
+    final_rect += [tile[2] for tile in buffer if tile not in real]
+
+    # do the final thingo
+    bonus = [final_rect[x + width + 1] for x in range(len(real)) if x + width + 1 < len(final_rect)]
+
+    final_rect += bonus
+
+    if len(final_rect) % width == 0:
+        pass
 
 
 if __name__ == '__main__':
