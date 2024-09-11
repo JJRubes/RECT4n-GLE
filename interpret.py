@@ -1,4 +1,6 @@
 import sys
+import math
+import fileinput
 
 class Shape:
     def __init__(self, grid, row, col, visited):
@@ -75,14 +77,16 @@ class Shape:
         return image
 
 
-def find_real(stiles, symbol):
-    # split into real and imaginary
-    real_below = lambda rp: (
-            (rp[0] + 1, rp[1] - 1, symbol) in stiles and
-            (rp[0] + 1, rp[1] + 1, symbol) in stiles and
-            (rp[0] + 2, rp[1]    , symbol) in stiles
-            )
-    return [real for real in stiles if real_below(real)]
+def find_real(stiles):
+    real_tiles = []
+    for real in stiles:
+        y, x, symbol = real
+        if (y + 1, x - 1, symbol) in stiles and (y + 1, x + 1, symbol) in stiles and (y + 2, x, symbol) in stiles:
+            real_tiles.append(real)
+            real_tiles.append((y + 1, x - 1, symbol))
+            real_tiles.append((y + 1, x + 1, symbol))
+            real_tiles.append((y + 2, x    , symbol))
+    return real_tiles
 
 
 def parse_shapes(grid):
@@ -110,7 +114,7 @@ def make_rectangle(shapes, width):
     symbols = {shape.symbol for shape in shapes}
     for symbol in symbols:
         only_one_symbol = [tile for tile in buffer if tile[2] == symbol]
-        real += find_real(only_one_symbol, symbol)
+        real += find_real(only_one_symbol)
     real.sort(reverse=True) # <- is this the correct ordering?
 
     # start building the final rectangle
@@ -121,8 +125,12 @@ def make_rectangle(shapes, width):
 
     # run the copy rule
     copy_rule = [final_rect[x + width + 1] for x in range(len(real)) if x + width + 1 < len(final_rect)]
-    final_rect += copy_rule
-    return final_rect
+
+    # reformat
+    formatted_rect = []
+    for i in range(math.ceil(len(final_rect) / width)):
+        formatted_rect.append("".join(final_rect[i * width:min((i + 1) * width, len(final_rect))]))
+    return formatted_rect
 
 
 def interpret_rectangle(grid):
@@ -132,26 +140,24 @@ def interpret_rectangle(grid):
     shapes = parse_shapes(grid)
 
     shapes.sort(key=lambda shape: shape.ordering(), reverse=True)
-    print("Shapes:")
-    for shape in shapes:
-        shape.print()
 
     calculate_offsets(shapes)
 
     return make_rectangle(shapes, width), width
 
 
-def interpret_file(file):
+def interpret():
     # read the input and clean up newlines
-    with open(file, 'r') as f:
-        content = f.readlines()
-    content = [[c for c in list(s) if c != '\n'] for s in content]
-    print("input file:")
-    for line in content:
-        print("  " + "".join(line))
+    with fileinput.input() as f:
+        content = [line for line in f]
+    content = [[char for char in list(line) if char != '\n'] for line in content]
 
     next_rect, width = interpret_rectangle(content)
-    while len(next_rect) % width == 0:
-        print("continue")
-        next_rect, width = interpret_rectangle(content)
-    print("halt")
+    for line in next_rect:
+        print(line)
+    print()
+    while len(next_rect[-1]) == width:
+        next_rect, width = interpret_rectangle(next_rect)
+        for line in next_rect:
+            print(line)
+        print()
