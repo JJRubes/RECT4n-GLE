@@ -35,7 +35,7 @@ class Shape:
         self.positions = next
         min_y = min(next, key=lambda pos: pos[0])[0]
         min_x = min(next, key=lambda pos: pos[1])[1]
-        max_x = max(next, key=lambda pos: pos[0])[0]
+        max_x = max(next, key=lambda pos: pos[1])[1]
         self.y = min_y
         self.x = min_x
         self.width = max_x - min_x + 1
@@ -78,14 +78,16 @@ class Shape:
 
 
 def find_real(stiles):
-    real_tiles = []
+    real_tiles = set()
     for real in stiles:
         y, x, symbol = real
         if (y + 1, x - 1, symbol) in stiles and (y + 1, x + 1, symbol) in stiles and (y + 2, x, symbol) in stiles:
-            real_tiles.append(real)
-            real_tiles.append((y + 1, x - 1, symbol))
-            real_tiles.append((y + 1, x + 1, symbol))
-            real_tiles.append((y + 2, x    , symbol))
+            real_tiles.add(real)
+            real_tiles.add((y + 1, x - 1, symbol))
+            real_tiles.add((y + 1, x + 1, symbol))
+            real_tiles.add((y + 2, x    , symbol))
+    real_tiles = list(real_tiles)
+    real_tiles.sort(reverse=True)
     return real_tiles
 
 
@@ -107,15 +109,37 @@ def calculate_offsets(shapes):
         acc += shape.width
 
 
-def make_rectangle(shapes, width):
-    # put it all into a list
+def sparse_to_image(tiles):
+    w_index = 0
+    h_index = 0
+    result = [[]]
+    for tile in tiles:
+        while tile[0] > h_index:
+            w_index = 0
+            h_index += 1
+            result.append([])
+        while tile[1] > w_index:
+            result[h_index].append(" ")
+            w_index += 1
+        result[h_index].append(tile[2])
+        w_index += 1
+    return ["".join(line) for line in result]
+
+
+def make_sorted_shapes_image(shapes):
+    buffer = shapes_to_sparse_list(shapes)
+    return sparse_to_image(buffer)
+
+
+def shapes_to_sparse_list(shapes):
     buffer = [(tile[0], tile[1] - shape.x + shape.buffer_x_offset, shape.symbol) for shape in shapes for tile in shape.positions]
-    real = []
-    symbols = {shape.symbol for shape in shapes}
-    for symbol in symbols:
-        only_one_symbol = [tile for tile in buffer if tile[2] == symbol]
-        real += find_real(only_one_symbol)
-    real.sort(reverse=True) # <- is this the correct ordering?
+    buffer.sort()
+    return buffer
+
+
+def make_rectangle(shapes, width):
+    buffer = shapes_to_sparse_list(shapes)
+    real = find_real(buffer)
 
     # start building the final rectangle
     # add the real symbols
@@ -125,6 +149,7 @@ def make_rectangle(shapes, width):
 
     # run the copy rule
     copy_rule = [final_rect[x + width + 1] for x in range(len(real)) if x + width + 1 < len(final_rect)]
+    final_rect += copy_rule
 
     # reformat
     formatted_rect = []
@@ -138,13 +163,26 @@ def interpret_rectangle(grid):
     width = max([len(l) for l in grid])
 
     shapes = parse_shapes(grid)
-
     shapes.sort(key=lambda shape: shape.ordering(), reverse=True)
-
     calculate_offsets(shapes)
 
     return make_rectangle(shapes, width), width
 
+
+def debug_interpret_rectangle(grid):
+    width = max([len(l) for l in grid])
+
+    shapes = parse_shapes(grid)
+    shapes.sort(key=lambda shape: shape.ordering(), reverse=True)
+    calculate_offsets(shapes)
+    sorted_shapes_image = make_sorted_shapes_image(shapes)
+
+    buffer = shapes_to_sparse_list(shapes)
+    real = find_real(buffer)
+    real = [(i // width, i % width, tile[2]) for i, tile in enumerate(real)]
+    real_image = sparse_to_image(real)
+
+    return width, sorted_shapes_image, real_image, make_rectangle(shapes, width)
 
 def interpret():
     # read the input and clean up newlines
