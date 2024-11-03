@@ -1,0 +1,18 @@
+ABAA
+ACAA
+ADAA
+===
+AAA  B
+AAA C
+AAAD
+===
+AAAA
+===
+AAAA
+AABA
+CAAD
+===
+AAAA
+AABA
+CAAD
+ABA

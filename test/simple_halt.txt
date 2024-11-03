@@ -1,0 +1,13 @@
+AA BC CC
+ BBBCCC
+===
+C CC  BAA
+CCC BBB
+===
+
+===
+CCCBAACC
+CBBB
+===
+CCCBAACC
+CBBB

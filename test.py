@@ -4,6 +4,9 @@ test_folder = "./test/"
 test_cases = [
         "example",
         "interesting_sort",
+        "simple_halt",
+        "sorted_real",
+        "copy_edge_case",
         ]
 
 
@@ -19,8 +22,8 @@ def compare(given, expected):
             return False
     return True
 
-def print_error(test, expected, actual):
-    print("Error:")
+def print_error(test, expected, actual, file):
+    print(f"Error in {file}:")
     print(test)
     print("Expected:")
     for line in expected:
@@ -37,15 +40,15 @@ def test_steps(test_case):
     width, shape_image, real_image, result = debug_interpret_rectangle(make_grid(sections[0]))
     expected_shapes = sections[1].splitlines()
     if not compare(shape_image, expected_shapes):
-        print_error(sections[0], expected_shapes, shape_image)
+        print_error(sections[0], expected_shapes, shape_image, test_case)
         return
     expected_real = sections[2].splitlines()
     if not compare(real_image, expected_real):
-        print_error(sections[0], expected_real, real_image)
+        print_error(sections[0], expected_real, real_image, test_case)
         return
     expected = sections[-1].splitlines()
     if not compare(result, expected):
-        print_error(sections[0], expected, result)
+        print_error(sections[0], expected, result, test_case)
 
 
 if __name__ == "__main__":

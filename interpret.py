@@ -87,7 +87,7 @@ def find_real(stiles):
             real_tiles.add((y + 1, x + 1, symbol))
             real_tiles.add((y + 2, x    , symbol))
     real_tiles = list(real_tiles)
-    real_tiles.sort(reverse=True)
+    real_tiles.sort()
     return real_tiles
 
 
@@ -148,8 +148,10 @@ def make_rectangle(shapes, width):
     final_rect += [tile[2] for tile in buffer if tile not in real]
 
     # run the copy rule
-    copy_rule = [final_rect[x + width + 1] for x in range(len(real)) if x + width + 1 < len(final_rect)]
-    final_rect += copy_rule
+    for i in range(max(0, width + 1 - len(real)), width + 1):
+        if (len(real) + i) % width == 0:
+            continue
+        final_rect.append(final_rect[len(real) + i])
 
     # reformat
     formatted_rect = []
